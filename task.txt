@@ -1,0 +1,9 @@
+Utilizând această aplicație, utilizatorul poate crea albume foto și poate adăuga fotografii
+existente în albumele create sau poate crea albume noi. Aplicația permite navigarea prin lista
+de fotografii și vizualizarea dimensiunii totale a unui album (suma dimensiunilor fotografiilor
+din album). La rulări ulterioare ale aplicației, utilizatorul poate vizualiza albumele create, le
+poate edita sau le poate șterge.
+Folosiți mecanismul de manipulare a fișierelor pentru a prelua și salva datele despre albume
+și fotografii. De asemenea, folosiți structuri de date pentru informațiile citite din fișier.
+
+
