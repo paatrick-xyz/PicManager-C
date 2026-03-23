@@ -1,25 +1,24 @@
 #ifndef LOGIC_H
 #define LOGIC_H
 
+extern int debug_mode;
+extern char base_path[256];
+#define LOG_DEBUG(format, ...) do{\
+    if(debug_mode){\
+        FILE *f_debug=fopen("debug.log","a");\
+        if(f_debug){\
+            fprintf(f_debug,"[DEBUG]" format "\n", ##__VA_ARGS__);\
+        }\
+    }\
+} while(0)
+
 typedef struct Menu Menu;
 
 void loadConfig();
-void action_op11();
-void action_op12();
-void action_add();
-void action_subs();
-void list_directory(const char* dirname);
-void action_list_directory();
-extern char base_path[256];
+int getXResolution(char* path);
+int getYResolution(char* path);
 char* getFileInfo(char* path);
 Menu* createAlbumMenu(char* path,char* name);
 void openImage(char* path);
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <locale.h>
-#include <time.h>
-#include <sys/stat.h>
 #endif

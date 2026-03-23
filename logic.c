@@ -1,7 +1,6 @@
 #include "logic.h"
 #include "menu.h"
 #include <stdio.h>
-#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +13,46 @@
 
 char base_path[256];
 
+
+int getXResolution (char* path){
+    FILE *f = fopen(path,"rb");
+    if(!f){
+        LOG_DEBUG("Image couldnt be opened");
+        return 0;
+    }
+    unsigned char buf[24];
+    if(fread(buf,1,24,f)<24){
+        fclose(f);
+        return 0;
+    }
+    int width=0;
+    if(buf[0]==0x89 && buf[1]=='P' && buf[2]=='N' && buf[3]=='G'){
+        width=(buf[16] <<24) | (buf[17] << 16) | (buf[18] << 8) | (buf[19]);
+    }
+    fclose(f);
+    LOG_DEBUG("Width:%d, path:%s",width, path);
+    return width;
+}
+
+int getYResolution (char* path){
+    FILE *f = fopen(path,"rb");
+    if(!f){
+        LOG_DEBUG("Image couldnt be opened");
+        return 0;
+    }
+    unsigned char buf[24];
+    if(fread(buf,1,24,f)<24){
+        fclose(f);
+        return 0;
+    }
+    int height=0;
+    if(buf[0]==0x89 && buf[1]=='P' && buf[2]=='N' && buf[3]=='G'){
+        height=(buf[20] <<24) | (buf[21] << 16) | (buf[22] << 8) | (buf[23]);
+    }
+    fclose(f);
+    LOG_DEBUG("Height:%d, path:%s",height, path);
+}
+
 char* getFileInfo(char* path){
     struct stat st;
     char info[100];
@@ -22,13 +61,14 @@ char* getFileInfo(char* path){
             return strdup("<DIR>");
         }else{
             double size_kb=(double)st.st_size/1024;
-            sprintf(info,"%.01f KB",size_kb);
-
+            sprintf(info,"%.01f KB | W: %d px H: %d px",size_kb,getXResolution(path),getYResolution(path));
         }
         return strdup(info);
     }
     return strdup("---");  
 }
+
+
 
 
 void openImage(char* path){
@@ -39,15 +79,18 @@ void openImage(char* path){
         if(path[i]=='\\')break;
     }
     sprintf(command, "start \"\" \"%s\"", path);
-    printf("%s", command);
+    //printf("%s", command);
+    LOG_DEBUG("Try to open image: %s, with command: %s", path,command);
     system(command);
     
 }
 
 Menu* createAlbumMenu(char* path,char* name){
     DIR *dir=opendir(path);
-    if(!dir) return NULL;
-
+    if(!dir) {
+        return NULL;
+        LOG_DEBUG("The path is not correct, dir couldnt be opened");
+    }
     Menu *m =(Menu*)malloc(sizeof(Menu));
     m->title= strdup(name);
     m->options=NULL;
@@ -62,6 +105,8 @@ Menu* createAlbumMenu(char* path,char* name){
 
         struct stat st;
         stat(full_path,&st);
+
+        LOG_DEBUG("Element found: %s (%s)", ent->d_name, S_ISDIR(st.st_mode) ? "DIR" : "FILE");
 
         m->options=realloc(m->options,(m->n+1)*sizeof(Option));
         Option *o= &m->options[m->n];
@@ -87,17 +132,22 @@ Menu* createAlbumMenu(char* path,char* name){
     m->n++;
     */
     closedir(dir);
+    LOG_DEBUG("Meniu '%s' created with %d options", name, m->n);
     return m;
 }
+
+int debug_mode=1;
 
 void loadConfig(){
     FILE *f=fopen("config.cfg","r");
     if(!f){
         printf("Fisierul de configurare nu a fost gasit te rog sa introduci calea: ");
         scanf("%s",base_path);
+        LOG_DEBUG("config file not found, creating one");
         //create cfg file
         FILE *f_new=fopen("config.cfg","w");
-        fprintf(f_new,"ALBUMS_PATH=%s",base_path);
+        fprintf(f_new,"ALBUMS_PATH=%s\n",base_path);
+        fprintf(f_new,"DEBUG_MODE=%d",debug_mode);
         fclose(f_new);
         printf("Fisierul de configurarea a fost creat si calea adaugata");
         pause_screen();
@@ -108,35 +158,15 @@ void loadConfig(){
         if(strncmp(line,"ALBUMS_PATH=",12)==0){
             sscanf(line,"ALBUMS_PATH=%s",base_path);
         }
+        if(strncmp(line,"DEBUG_MODE=",13)==0){
+            sscanf(line,"DEBUG_MODE=%d",debug_mode);
+        }
+        LOG_DEBUG("Path set as: %s",base_path);
+
     }
     fclose(f);
 }
 
-void action_op11(){
-    printf("\nExecuting Task 1.1...");
-    pause_screen();
-}
-void action_op12(){
-    printf("\nExecuting Task 1.2...");
-    pause_screen();
-}
-
-
-void action_add(){
-    printf("Enter two numbers to add: ");
-    int a, b;
-    scanf("%d %d", &a, &b);
-    printf("Sum of the numbers %d\n",a+b);
-    pause_screen();
-}
-
-void action_subs(){
-    printf("Enter two numbers to subtract: ");
-    int a, b;
-    scanf("%d %d", &a, &b);
-    printf("Subtraction of the numbers %d\n",a-b);
-    pause_screen();
-}
 /*
 void action_list_directory() {
     list_directory("C:/Users/HP/Documents/PicManager-C");

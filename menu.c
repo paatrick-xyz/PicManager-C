@@ -56,7 +56,7 @@ int handle_input(int *selected_option, int max_options) {
 int menu_loop(Menu *menu){
     int selected_option=1;
     int conf=0;
-    loadConfig();
+    //loadConfig();
     while (1){
         display_menu(menu, selected_option);
         conf=handle_input(&selected_option,menu->n);
