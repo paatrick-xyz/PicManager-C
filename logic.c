@@ -20,8 +20,8 @@ int getXResolution (char* path){
         LOG_DEBUG("Image couldnt be opened");
         return 0;
     }
-    unsigned char buf[24];
-    if(fread(buf,1,24,f)<24){
+    unsigned char buf[32];
+    if(fread(buf,1,32,f)<24){
         fclose(f);
         return 0;
     }
@@ -40,8 +40,8 @@ int getYResolution (char* path){
         LOG_DEBUG("Image couldnt be opened");
         return 0;
     }
-    unsigned char buf[24];
-    if(fread(buf,1,24,f)<24){
+    unsigned char buf[32];
+    if(fread(buf,1,32,f)<24){
         fclose(f);
         return 0;
     }
@@ -51,6 +51,7 @@ int getYResolution (char* path){
     }
     fclose(f);
     LOG_DEBUG("Height:%d, path:%s",height, path);
+    return height;
 }
 
 char* getFileInfo(char* path){
@@ -61,7 +62,7 @@ char* getFileInfo(char* path){
             return strdup("<DIR>");
         }else{
             double size_kb=(double)st.st_size/1024;
-            sprintf(info,"%.01f KB | W: %d px H: %d px",size_kb,getXResolution(path),getYResolution(path));
+            sprintf(info,"%.01f KB | %dx%d px",size_kb,getXResolution(path),getYResolution(path));
         }
         return strdup(info);
     }
