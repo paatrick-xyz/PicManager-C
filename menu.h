@@ -10,7 +10,7 @@
 typedef struct Menu Menu;
 typedef struct Option Option;
 
-typedef void (*ActionMenu)(void); //placeholder for function
+typedef void (*ActionMenu)(); //placeholder for function
 
 
 typedef struct Menu {
@@ -20,6 +20,8 @@ typedef struct Menu {
 }Menu;
 typedef struct Option{
     char *name;
+    char *details;
+    char *path;
     Menu *submenu;
     ActionMenu action;
 }Option;

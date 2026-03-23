@@ -1,4 +1,5 @@
 #include "menu.h"
+#include "logic.h"
 
 void clear_screen() {
     system("cls"); // clear console screen
@@ -12,9 +13,15 @@ void pause_screen(){
 
 void display_menu(Menu *menu, int selected_option){
     clear_screen();
-    printf("%s\n", menu->title);
-    for (int i = 0; i < menu->n; i++) {
-        printf("%s %s %s\n", selected_option == i + 1 ? ">" : " ", menu->options[i].name, selected_option == i + 1 ? "<" : " ");
+    printf("=== %s ===\n\n", menu->title);
+
+    for(int i=0;i<menu->n;i++){
+        if(selected_option == i+1){
+            printf("> %-20s %10s <\n", menu->options[i].name,menu->options[i].details);
+        }
+        else{
+            printf(" %-20s %10s \n", menu->options[i].name,menu->options[i].details);
+        }
     }
 }
 
@@ -30,28 +37,38 @@ int handle_input(int *selected_option, int max_options) {
         } else if (input == 80) { // Down
             (*selected_option)++;
             if (*selected_option > max_options) *selected_option = 1;
+        } else if (input == 75){ // LEFT
+            return -1;
+        } else if (input == 77){ // RIGHTa
+            return 1;
         }
         return 0; // Signal that we just moved, didn't "select"
     } 
     
     if (input == 13) { // Enter key
         return 1; // Signal that user confirmed selection
+    }if (input == 27){
+        return -1; //BACK
     }
-
     return 0;
 }
 
 int menu_loop(Menu *menu){
     int selected_option=1;
     int conf=0;
+    loadConfig();
     while (1){
         display_menu(menu, selected_option);
         conf=handle_input(&selected_option,menu->n);
-        if(conf){
+        if(conf == -1) return 0;
+        if(conf == 1){
             Option *selected = &menu->options[selected_option-1];
+            if(selected->submenu==NULL && selected->path!=NULL) {
+                openImage(selected->path);
+                conf=0;
+            }
+            if(selected->submenu==NULL && selected->action==NULL && conf !=0) return 0; // EXIT
             
-            if(selected->submenu == NULL && selected->action == NULL) break; //return or exit
-
             if(selected->submenu !=NULL){
                 menu_loop(selected->submenu); //acces submenu
             }

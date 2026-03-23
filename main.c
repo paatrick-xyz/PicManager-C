@@ -3,8 +3,9 @@
 
 #define max_option 3
 
+/*
 Option op_submenu1[]={
-    {"Option 1.1", NULL,action_op11},
+    {"Option 1.1", NULL,NULL},
     {"Option 1.2", NULL,action_op12},
     {"Return to main menu", NULL,NULL}
 };
@@ -26,9 +27,13 @@ Option main_op[]={
 };
 
 Menu main_menu={"Main Menu", main_op, max_option};
-
+*/
 
 int main(void) {
-    menu_loop(&main_menu);
+    loadConfig();
+    Menu *dynamic_main=createAlbumMenu(base_path,"Pic Manager");
+
+    menu_loop(dynamic_main);
+    //menu_loop(&main_menu);
     return 0;
 }
