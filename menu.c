@@ -1,6 +1,6 @@
 #include "menu.h"
 #include "logic.h"
-
+#include <string.h>
 void clear_screen() {
     system("cls"); // clear console screen
 }
@@ -50,6 +50,9 @@ int handle_input(int *selected_option, int max_options) {
     }if (input == 27){
         return -1; //BACK
     }
+    if (input == 'a' || input == 'A'){
+        return 2;
+    }
     return 0;
 }
 
@@ -63,6 +66,10 @@ int menu_loop(Menu *menu){
         if(conf == -1) return 0;
         if(conf == 1){
             Option *selected = &menu->options[selected_option-1];
+            if(strcmp(selected->name,"[NEW ALBUM]")==0){
+                createAlbum(menu->path);
+                return 1;
+            }
             if(selected->submenu==NULL && selected->path!=NULL) {
                 openImage(selected->path);
                 conf=0;
@@ -70,13 +77,17 @@ int menu_loop(Menu *menu){
             if(selected->submenu==NULL && selected->action==NULL && conf !=0) return 0; // EXIT
             
             if(selected->submenu !=NULL){
-                menu_loop(selected->submenu); //acces submenu
+                if(menu_loop(selected->submenu)) return 1; //acces submenu
             }
             else if (selected->action!=NULL){
                 clear_screen();
                 selected->action();           //acces option
             }
             conf=0;
+        }
+        if (conf == 2){
+            addImageToAlbum(menu->options[0].path);
+            return 1;
         }
     }
     return 0;

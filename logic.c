@@ -9,10 +9,10 @@
 #include <locale.h>
 #include <time.h>
 #include <sys/stat.h>
-
+#include <direct.h>
+#include <windows.h>
 
 char base_path[256];
-
 
 int getXResolution (char* path){
     FILE *f = fopen(path,"rb");
@@ -73,17 +73,72 @@ char* getFileInfo(char* path){
 
 
 void openImage(char* path){
-    char command[512]="start ";
+    char command[512];
     //Make path correct
-    for(int i=strlen(path);i>0;i--){
-        if(path[i]=='/')path[i]='\\';
-        if(path[i]=='\\')break;
+    char fixed_path[512];
+    strncpy(fixed_path, path, sizeof(fixed_path) - 1);
+    fixed_path[sizeof(fixed_path) - 1] = '\0';
+
+   for(int i = 0; fixed_path[i] != '\0'; i++){
+        if(fixed_path[i] == '/') {
+            fixed_path[i] = '\\';
+        }
     }
-    sprintf(command, "start \"\" \"%s\"", path);
+    sprintf(command, "start \"\" \"%s\"", fixed_path);
     //printf("%s", command);
-    LOG_DEBUG("Try to open image: %s, with command: %s", path,command);
+    LOG_DEBUG("Try to open image: %s, with command: %s", fixed_path,command);
     system(command);
     
+}
+
+void createAlbum(char* path){
+    if(path==NULL) return;
+    char folder_name[150];
+    char full_path_w_folder[512];
+
+    clear_screen();
+    printf("===CREATE NEW FOLDER===\n");
+    printf("Enter folder name:");
+    scanf("%s",folder_name);
+    /*
+    strcpy(full_path_w_folder,path);
+    strcat(full_path_w_folder,"\\");
+    strcat(full_path_w_folder,folder_name);
+    */
+    snprintf(full_path_w_folder, sizeof(full_path_w_folder), "%s/%s", path, folder_name);
+    if(_mkdir(full_path_w_folder) ==0){
+        printf("Album created with name %s", folder_name);
+        LOG_DEBUG("Album created with path %s",full_path_w_folder);
+    }
+    else{
+        LOG_DEBUG("error creating album");
+    }
+}
+
+void addImageToAlbum(char* path){
+    clear_screen();
+    printf("===ADD IMAGE TO ALBUM===\n");
+    printf("Select image to add:");
+    char* image_path=NULL;
+    
+    if(image_path==NULL){
+        LOG_DEBUG("No image selected");
+        return;
+    }else{
+        char command[512];
+        sprintf(command, "copy \%s \"\%s\"",image_path,path);
+        LOG_DEBUG("Copying image with command: %s", command);
+        int ok=system(command);
+        if(ok==0){
+            printf("Image added to album successfully");
+            LOG_DEBUG("Image added to album successfully");
+        }
+        else{
+            printf("Error adding image to album");
+            LOG_DEBUG("Error adding image to album");
+        }
+    }
+    pause_screen();
 }
 
 Menu* createAlbumMenu(char* path,char* name){
@@ -95,6 +150,7 @@ Menu* createAlbumMenu(char* path,char* name){
     Menu *m =(Menu*)malloc(sizeof(Menu));
     m->title= strdup(name);
     m->options=NULL;
+    m->path=strdup(path);
     m->n=0;
 
     struct dirent *ent;
@@ -124,14 +180,14 @@ Menu* createAlbumMenu(char* path,char* name){
         }
         m->n++;
     }
-    /*
+    
     m->options = (Option*)realloc(m->options,(m->n+1)*sizeof(Option));
-    m->options[m->n].name= strdup("[BACK]");
+    m->options[m->n].name= strdup("[NEW ALBUM]");
     m->options[m->n].details=strdup("");
     m->options[m->n].submenu=NULL;
     m->options[m->n].action=NULL;
     m->n++;
-    */
+    
     closedir(dir);
     LOG_DEBUG("Meniu '%s' created with %d options", name, m->n);
     return m;

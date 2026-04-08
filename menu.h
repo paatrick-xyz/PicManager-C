@@ -15,6 +15,7 @@ typedef void (*ActionMenu)(); //placeholder for function
 
 typedef struct Menu {
     char *title;
+    char *path;
     Option *options;
     int n;
 }Menu;

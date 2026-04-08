@@ -31,9 +31,13 @@ Menu main_menu={"Main Menu", main_op, max_option};
 
 int main(void) {
     loadConfig();
-    Menu *dynamic_main=createAlbumMenu(base_path,"Pic Manager");
+    while(1){
+        Menu *dynamic_main=createAlbumMenu(base_path,"Pic Manager");
 
-    menu_loop(dynamic_main);
+        int redo = menu_loop(dynamic_main);
+
+        if(redo!= 1) break;
+    }
     //menu_loop(&main_menu);
     return 0;
 }

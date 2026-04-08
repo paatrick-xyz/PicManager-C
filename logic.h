@@ -20,5 +20,6 @@ int getYResolution(char* path);
 char* getFileInfo(char* path);
 Menu* createAlbumMenu(char* path,char* name);
 void openImage(char* path);
-
+void createAlbum(char* path);
+void addImageToAlbum(char* path);
 #endif
