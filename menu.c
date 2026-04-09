@@ -70,6 +70,10 @@ int menu_loop(Menu *menu){
                 createAlbum(menu->path);
                 return 1;
             }
+            if(strcmp(selected->name,"[ADD IMAGE]")==0){
+                addImageToAlbum(menu->path);
+                return 1;
+            }
             if(selected->submenu==NULL && selected->path!=NULL) {
                 openImage(selected->path);
                 conf=0;
@@ -91,4 +95,27 @@ int menu_loop(Menu *menu){
         }
     }
     return 0;
+}
+
+void free_menu(Menu *m) {
+    if (m == NULL) return;
+
+    // Eliberăm fiecare opțiune
+    for (int i = 0; i < m->n; i++) {
+        if (m->options[i].name) free(m->options[i].name);
+        if (m->options[i].details) free(m->options[i].details);
+        if (m->options[i].path) free(m->options[i].path);
+        
+        // Dacă opțiunea are un submeniu, îl eliberăm recursiv
+        if (m->options[i].submenu) {
+            free_menu(m->options[i].submenu);
+        }
+    }
+
+    // Eliberăm array-ul de opțiuni și restul structurii Menu
+    if (m->options) free(m->options);
+    if (m->title) free(m->title);
+    if (m->path) free(m->path);
+    
+    free(m);
 }

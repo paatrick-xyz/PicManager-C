@@ -33,6 +33,6 @@ void pause_screen();
 void display_menu(Menu *menu, int selected);
 int handle_input(int *selected, int max_option);
 int menu_loop(Menu *menu);
-
+void free_menu(Menu *m);
 
 #endif

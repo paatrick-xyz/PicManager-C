@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <direct.h>
 #include <windows.h>
+#include <commdlg.h>
 
 char base_path[256];
 
@@ -115,31 +116,6 @@ void createAlbum(char* path){
     }
 }
 
-void addImageToAlbum(char* path){
-    clear_screen();
-    printf("===ADD IMAGE TO ALBUM===\n");
-    printf("Select image to add:");
-    char* image_path=NULL;
-    
-    if(image_path==NULL){
-        LOG_DEBUG("No image selected");
-        return;
-    }else{
-        char command[512];
-        sprintf(command, "copy \%s \"\%s\"",image_path,path);
-        LOG_DEBUG("Copying image with command: %s", command);
-        int ok=system(command);
-        if(ok==0){
-            printf("Image added to album successfully");
-            LOG_DEBUG("Image added to album successfully");
-        }
-        else{
-            printf("Error adding image to album");
-            LOG_DEBUG("Error adding image to album");
-        }
-    }
-    pause_screen();
-}
 
 Menu* createAlbumMenu(char* path,char* name){
     DIR *dir=opendir(path);
@@ -188,11 +164,68 @@ Menu* createAlbumMenu(char* path,char* name){
     m->options[m->n].action=NULL;
     m->n++;
     
+    m->options = (Option*)realloc(m->options,(m->n+1)*sizeof(Option));
+    m->options[m->n].name= strdup("[ADD IMAGE]");
+    m->options[m->n].details=strdup("");
+    m->options[m->n].submenu=NULL;
+    m->options[m->n].action=NULL;
+    m->n++;
+
     closedir(dir);
     LOG_DEBUG("Meniu '%s' created with %d options", name, m->n);
     return m;
 }
 
+char* openFileDialog(){
+    OPENFILENAME ofn;
+    char szFile[260];
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFile = szFile;
+    ofn.lpstrFile[0] = '\0';
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = "Images\0*.png;*.jpg;*.jpeg;\0All Files\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrFileTitle = NULL;
+    ofn.nMaxFileTitle = 0;
+    ofn.lpstrInitialDir = NULL;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+    if(GetOpenFileName(&ofn) == TRUE){
+        LOG_DEBUG("File selected: %s", ofn.lpstrFile);
+        return strdup(ofn.lpstrFile);
+    }
+    LOG_DEBUG("No file selected or error occurred");
+    return NULL;
+}
+
+void addImageToAlbum(char* path){
+    clear_screen();
+    printf("===ADD IMAGE TO ALBUM===\n");
+    printf("The selecting window is opening...\n");
+    char* image_path = openFileDialog();
+
+    if(image_path==NULL){
+        LOG_DEBUG("No image selected by user");
+        printf("No image selected");
+    }else{
+        char command[1024];
+        sprintf(command, "copy \"%s\" \"%s\"", image_path, path);
+        LOG_DEBUG("Copying image with command: %s", command);
+        int ok = system(command);
+        if(ok != 0){
+            LOG_DEBUG("Error occurred while copying image");
+        }
+        else{
+            LOG_DEBUG("Image copied successfully to album");
+        }
+        free(image_path);
+    }
+    pause_screen();
+
+}
 int debug_mode=1;
 
 void loadConfig(){

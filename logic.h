@@ -21,5 +21,6 @@ char* getFileInfo(char* path);
 Menu* createAlbumMenu(char* path,char* name);
 void openImage(char* path);
 void createAlbum(char* path);
+char* openFileDialog();
 void addImageToAlbum(char* path);
 #endif
