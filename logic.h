@@ -8,7 +8,6 @@ extern char base_path[256];
         FILE *f_debug=fopen("debug.log","a");\
         if(f_debug){\
             fprintf(f_debug,"[DEBUG]" format "\n", ##__VA_ARGS__);\
-            fclose(f_debug);\
         }\
     }\
 } while(0)
