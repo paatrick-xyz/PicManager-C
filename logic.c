@@ -12,7 +12,7 @@
 #include <direct.h>
 #include <windows.h>
 #include <commdlg.h>
-
+#include <shlobj.h>
 char base_path[256];
 
 int getXResolution (char* path){
@@ -30,8 +30,18 @@ int getXResolution (char* path){
     if(buf[0]==0x89 && buf[1]=='P' && buf[2]=='N' && buf[3]=='G'){
         width=(buf[16] <<24) | (buf[17] << 16) | (buf[18] << 8) | (buf[19]);
     }
+    if(buf[0]==0xFF && buf[1]==0xD8){
+        int pos=2;
+        while(pos<32){
+            if(buf[pos]==0xFF && (buf[pos+1] & 0xF0)==0xC0){
+                width=(buf[pos+4] <<8) | (buf[pos+5]);
+                break;
+            }
+            pos+=2+(buf[pos+2]<<8) | buf[pos+3];
+        }
+    }
     fclose(f);
-    LOG_DEBUG("Width:%d, path:%s",width, path);
+    LOG_DEBUG("Width:%d, path:%s , %s",width, path, buf);
     return width;
 }
 
@@ -70,7 +80,16 @@ char* getFileInfo(char* path){
     return strdup("---");  
 }
 
-
+int CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpData) {
+    // Dacă fereastra abia s-a deschis (BFFM_INITIALIZED)
+    if (uMsg == BFFM_INITIALIZED) {
+        if (lpData) {
+            // Îi spunem ferestrei să sară la calea trimisă prin lpData
+            SendMessage(hwnd, BFFM_SETSELECTION, TRUE, lpData);
+        }
+    }
+    return 0;
+}
 
 
 void openImage(char* path){
@@ -149,10 +168,12 @@ Menu* createAlbumMenu(char* path,char* name){
         if(S_ISDIR(st.st_mode)){
             o->submenu=createAlbumMenu(full_path,ent->d_name);
             o->action=NULL;
+            o->type=OPTION_NORMAL;
         }
         else{
-            o->submenu=NULL;
-            o->action = NULL;
+            o->submenu=createPhotoMenu(full_path,ent->d_name);
+            o->action=NULL;
+            o->type=OPTION_NORMAL;
         }
         m->n++;
     }
@@ -162,6 +183,8 @@ Menu* createAlbumMenu(char* path,char* name){
     m->options[m->n].details=strdup("");
     m->options[m->n].submenu=NULL;
     m->options[m->n].action=NULL;
+    m->options[m->n].path=NULL;
+    m->options[m->n].type=OPTION_NEW_ALBUM;
     m->n++;
     
     m->options = (Option*)realloc(m->options,(m->n+1)*sizeof(Option));
@@ -169,6 +192,8 @@ Menu* createAlbumMenu(char* path,char* name){
     m->options[m->n].details=strdup("");
     m->options[m->n].submenu=NULL;
     m->options[m->n].action=NULL;
+    m->options[m->n].path=NULL;
+    m->options[m->n].type=OPTION_ADD_IMAGE;
     m->n++;
 
     closedir(dir);
@@ -200,6 +225,31 @@ char* openFileDialog(){
     LOG_DEBUG("No file selected or error occurred");
     return NULL;
 }
+
+char* openFolderDialog(){
+    static char path[MAX_PATH];
+    BROWSEINFO bi = {0};
+    bi.lpszTitle = "Select Foler";
+    bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+    bi.lpfn = BrowseCallbackProc;
+    bi.lParam = (LPARAM)base_path;
+    LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
+
+    if (pidl != 0) {
+        if (SHGetPathFromIDList(pidl, path)) {
+            IMalloc * imalloc = 0;
+            if (SUCCEEDED(SHGetMalloc(&imalloc))) {
+                imalloc->lpVtbl->Free(imalloc, pidl);
+                imalloc->lpVtbl->Release(imalloc);
+            }
+            return strdup(path);
+        }
+    }
+    LOG_DEBUG("No folder selected or error occurred");
+    return NULL;
+}
+
+
 
 void addImageToAlbum(char* path){
     clear_screen();
@@ -255,6 +305,118 @@ void loadConfig(){
 
     }
     fclose(f);
+}
+
+Menu* createPhotoMenu(char* path, char* name){
+    Menu *m =(Menu*)malloc(sizeof(Menu));
+    m->title= strdup(name);
+    m->options=NULL;
+    m->path=strdup(path);
+    m->n=0;
+    typedef struct { char *name; OptionType type; } PhotoOp;
+    PhotoOp op_info[] = {
+        {"[OPEN IMAGE]",   OPTION_OPEN_IMAGE},
+        {"[RENAME IMAGE]", OPTION_RENAME_IMAGE},
+        {"[DELETE IMAGE]", OPTION_DELETE_IMAGE},
+        {"[MOVE IMAGE]",   OPTION_MOVE_IMAGE},
+    };
+    m->options = (Option*)realloc(m->options,(m->n+4)*sizeof(Option));
+    for(int i=0;i<4;i++){
+        m->options[i].name=strdup(op_info[i].name);
+        m->options[i].details=strdup("");
+        m->options[i].submenu=NULL;
+        m->options[i].action=NULL;
+        m->options[i].path=strdup(path);
+        m->options[i].type=op_info[i].type;
+    }
+    m->n=4;
+    return m;
+}
+
+void renameImage(char* path){
+    char new_name[256], new_path[512];
+    clear_screen();
+    printf("===RENAME IMAGE===\n");
+    printf("Enter new name (without extension): ");
+    scanf("%s", new_name);
+    strcpy(new_path, path);
+    char *last_bslash = strrchr(new_path, '\\');
+    char *last_fslash = strrchr(new_path, '/');
+    char *last_sep = (last_bslash > last_fslash) ? last_bslash : last_fslash;
+    if (last_sep) {
+        strcpy(last_sep + 1, new_name);
+        char *dot = strrchr(path, '.');
+        if (dot) {
+            strcat(new_path, dot);
+        }
+    }
+    if(rename(path,new_path) == 0){
+        LOG_DEBUG("Image renamed successfully to %s", new_path);
+        printf("Image renamed successfully");
+    }
+    else{
+        LOG_DEBUG("Error renaming image: %s", strerror(errno));
+        printf("Error renaming image");
+    }
+}
+
+void deleteImage(char* path){
+    clear_screen();
+    printf("===DELETE IMAGE===\n");
+    printf("Are you sure you want to delete this image? (y/n): ");
+    char confirm;
+    scanf(" %c", &confirm);
+    if (confirm == 'y' || confirm == 'Y') {
+        if (remove(path) == 0) {
+            LOG_DEBUG("Image deleted successfully: %s", path);
+            printf("Image deleted successfully");
+        } else {
+            LOG_DEBUG("Error deleting image: %s", strerror(errno));
+            printf("Error deleting image");
+        }
+    } else {
+        LOG_DEBUG("Image deletion cancelled by user");
+        printf("Image deletion cancelled");
+    }
+}
+void moveImage(char* path){
+
+    char fixed_path[512];
+    strncpy(fixed_path, path, sizeof(fixed_path) - 1);
+    fixed_path[sizeof(fixed_path) - 1] = '\0';
+    
+    for (int i = 0; fixed_path[i] != '\0'; i++) {
+        if (fixed_path[i] == '/') {
+            fixed_path[i] = '\\';
+        }
+    }
+
+    clear_screen();
+    printf("===MOVE IMAGE===\n");
+    printf("The selecting window is opening...\n");
+    char* new_location = openFolderDialog();
+
+    if(new_location==NULL){
+        LOG_DEBUG("No destination selected by user for moving image");
+        printf("No destination selected");
+    }else{
+        char command[1024];
+        
+        sprintf(command, "move \"%s\" \"%s\"", fixed_path, new_location);
+        LOG_DEBUG("Moving image with command: %s", command);
+        
+        int ok = system(command);
+        if(ok == 0){
+            LOG_DEBUG("Image moved successfully to %s", new_location);
+            printf("Image moved successfully\n");
+        }
+        else{
+            LOG_DEBUG("Error occurred while moving image");
+            printf("Error moving image. Asigura-te ca imaginea nu este deja deschisa.\n");
+        }
+        free(new_location);
+    }
+    pause_screen();
 }
 
 /*

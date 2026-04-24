@@ -66,31 +66,40 @@ int menu_loop(Menu *menu){
         if(conf == -1) return 0;
         if(conf == 1){
             Option *selected = &menu->options[selected_option-1];
-            if(strcmp(selected->name,"[NEW ALBUM]")==0){
-                createAlbum(menu->path);
-                return 1;
+            switch(selected->type){
+                case OPTION_NEW_ALBUM:
+                    createAlbum(menu->path);
+                    return 1;
+                case OPTION_ADD_IMAGE:
+                    addImageToAlbum(menu->path);
+                    return 1;
+                case OPTION_OPEN_IMAGE:
+                    openImage(selected->path);
+                    break;
+                case OPTION_RENAME_IMAGE:
+                    renameImage(selected->path);
+                    return 1; // refresh so the new name shows up
+                case OPTION_DELETE_IMAGE:
+                    deleteImage(selected->path);
+                    return 1; // refresh — image no longer exists
+                case OPTION_MOVE_IMAGE:
+                    moveImage(selected->path);
+                    return 1; // refresh — image has left the album
+                case OPTION_NORMAL:
+                    if(selected->submenu != NULL){
+                        if(menu_loop(selected->submenu)) return 1;
+                    } else if(selected->action != NULL){
+                        clear_screen();
+                        selected->action();
+                    } else {
+                        return 0; // EXIT
+                    }
+                    break;
             }
-            if(strcmp(selected->name,"[ADD IMAGE]")==0){
-                addImageToAlbum(menu->path);
-                return 1;
-            }
-            if(selected->submenu==NULL && selected->path!=NULL) {
-                openImage(selected->path);
-                conf=0;
-            }
-            if(selected->submenu==NULL && selected->action==NULL && conf !=0) return 0; // EXIT
-            
-            if(selected->submenu !=NULL){
-                if(menu_loop(selected->submenu)) return 1; //acces submenu
-            }
-            else if (selected->action!=NULL){
-                clear_screen();
-                selected->action();           //acces option
-            }
-            conf=0;
+            conf = 0;
         }
         if (conf == 2){
-            addImageToAlbum(menu->options[0].path);
+            addImageToAlbum(menu->path);
             return 1;
         }
     }

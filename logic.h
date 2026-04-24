@@ -8,6 +8,7 @@ extern char base_path[256];
         FILE *f_debug=fopen("debug.log","a");\
         if(f_debug){\
             fprintf(f_debug,"[DEBUG]" format "\n", ##__VA_ARGS__);\
+            fclose(f_debug);\
         }\
     }\
 } while(0)
@@ -23,4 +24,9 @@ void openImage(char* path);
 void createAlbum(char* path);
 char* openFileDialog();
 void addImageToAlbum(char* path);
+
+Menu* createPhotoMenu(char* path, char* name);
+void renameImage(char* path);
+void deleteImage(char* path);
+void moveImage(char* path);
 #endif

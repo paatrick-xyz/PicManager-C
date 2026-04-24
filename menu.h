@@ -12,6 +12,15 @@ typedef struct Option Option;
 
 typedef void (*ActionMenu)(); //placeholder for function
 
+typedef enum{
+    OPTION_NORMAL,
+    OPTION_NEW_ALBUM,
+    OPTION_ADD_IMAGE,
+    OPTION_OPEN_IMAGE,
+    OPTION_RENAME_IMAGE,
+    OPTION_DELETE_IMAGE,
+    OPTION_MOVE_IMAGE,
+} OptionType;
 
 typedef struct Menu {
     char *title;
@@ -25,6 +34,7 @@ typedef struct Option{
     char *path;
     Menu *submenu;
     ActionMenu action;
+    OptionType type;
 }Option;
 
 
