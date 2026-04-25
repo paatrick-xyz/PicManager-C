@@ -1,5 +1,7 @@
 #include "menu.h"
-#include "logic.h"
+#include "image.h"
+#include "config.h"   // LOG_DEBUG()
+#include "album.h"
 #include <string.h>
 void clear_screen() {
     system("cls"); // clear console screen

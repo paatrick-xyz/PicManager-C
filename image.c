@@ -57,16 +57,57 @@ int getYResolution(char *path) {
     return height;
 }
 
+typedef struct {
+    int w;
+    int h;
+} ImageSize;
+
+ImageSize getImageSize(char *path){
+    ImageSize size = {0,0};
+    FILE *f = fopen(path, "rb");
+    if(!f){
+        LOG_DEBUG("Image couldn't be opened: %s", path);
+        return size;
+    }
+    unsigned char buf[64];
+    if(fread(buf,1,64,f)<24){
+        fclose(f);
+        LOG_DEBUG("Error reading image: %s", path);
+        return size;
+    }
+    if (buf[0] == 0x89 && buf[1] == 'P' && buf[2] == 'N' && buf[3] == 'G') {
+        size.w = (buf[16] << 24) | (buf[17] << 16) | (buf[18] << 8) | buf[19];
+        size.h = (buf[20] << 24) | (buf[21] << 16) | (buf[22] << 8) | buf[23];
+    }
+    else if(buf[0]==0xFF && buf[1]==0xD8){
+        int pos=2;
+        while(pos<64){
+            if(buf[pos]==0xFF && (buf[pos+1] & 0xF0)==0xC0){
+                size.h = (buf[pos+4]<<8) | buf[pos+5];
+                size.w = (buf[pos+6]<<8) | buf[pos+7];
+                break;
+            }
+            pos+=2 + ((buf[pos+2]<<8) | buf[pos+3]);
+        }
+    }
+    fclose(f);
+    LOG_DEBUG("Image size: %dx%d path:%s", size.w, size.h, path);
+    return size;
+}
+
+
 char *getFileInfo(char *path) {
     struct stat st;
     if (stat(path, &st) != 0) return strdup("---");
 
     if (S_ISDIR(st.st_mode)) return strdup("<DIR>");
 
+    ImageSize dim = getImageSize(path);
+
     char info[128];
     double size_kb = (double)st.st_size / 1024.0;
     snprintf(info, sizeof(info), "%.1f KB | %dx%d px",
-             size_kb, getXResolution(path), getYResolution(path));
+             size_kb, dim.w, dim.h);
     return strdup(info);
 }
 
