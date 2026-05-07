@@ -79,15 +79,22 @@ ImageSize getImageSize(char *path){
         size.w = (buf[16] << 24) | (buf[17] << 16) | (buf[18] << 8) | buf[19];
         size.h = (buf[20] << 24) | (buf[21] << 16) | (buf[22] << 8) | buf[23];
     }
-    else if(buf[0]==0xFF && buf[1]==0xD8){
-        int pos=2;
-        while(pos<64){
-            if(buf[pos]==0xFF && (buf[pos+1] & 0xF0)==0xC0){
-                size.h = (buf[pos+4]<<8) | buf[pos+5];
-                size.w = (buf[pos+6]<<8) | buf[pos+7];
+    else if (buf[0] == 0xFF && buf[1] == 0xD8) {
+        int pos = 2;
+        while (pos + 8 < 64) {
+            while (buf[pos] == 0xFF && pos + 4 < 64) pos++;
+
+            unsigned char marker = buf[pos + 1];
+            int length = (buf[pos + 2] << 8) | buf[pos + 3];
+
+            if (marker >= 0xC0 && marker <= 0xC2) {
+                size.h = (buf[pos + 5] << 8) | buf[pos + 6];
+                size.w = (buf[pos + 7] << 8) | buf[pos + 8];
                 break;
             }
-            pos+=2 + ((buf[pos+2]<<8) | buf[pos+3]);
+            
+            // Move to the next marker
+            pos += 2 + length;
         }
     }
     fclose(f);
